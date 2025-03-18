@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
+import datetime
 import subprocess
 import time
 import json
 import threading
-import re
 import sys
+import os
 
 try:
     import pynvml
@@ -84,9 +85,14 @@ def run_single_task_benchmark(model, task, common_args):
     Measures execution time and monitors VRAM usage independently.
     Returns a dictionary with elapsed time, max VRAM usage, and the parsed benchmark result.
     """
-    common_args.extend(["--save_references_path", "./results/references/" + model + "_" + task + ".json"])
-    common_args.extend(["--save_generations_path", "./results/generations/" + model + "_" + task + ".json"])
-    common_args.extend(["--metric_output_path", "./results/evaluations/" + model + "_" + task + ".json"])
+    model_name = model.split("/")[1]
+    # Create directories if they don't exist
+    os.makedirs("./results/references", exist_ok=True)
+    os.makedirs("./results/generations", exist_ok=True)
+    os.makedirs("./results/evaluations", exist_ok=True)
+    common_args.extend(["--save_references_path", "./results/references/" + model_name + ".json"])
+    common_args.extend(["--save_generations_path", "./results/generations/" + model_name + ".json"])
+    common_args.extend(["--metric_output_path", "./results/evaluations/" + model_name + "_" + task + ".json"])
 
     command = ["accelerate", "launch", "main.py", "--model", model] + common_args + ["--tasks", task]
     print(f"\nRunning command for task '{task}':")
@@ -143,11 +149,23 @@ def run_single_task_benchmark(model, task, common_args):
         benchmark_result["config"] = clean_config(benchmark_result["config"])
 
     return {
-        "elapsed_time_sec": elapsed_time,
+        "total_elapsed_time_sec": elapsed_time,
         "max_vram_usage_mb": vram_usage_mb,
         "result": benchmark_result  # expected to include the task key and config
     }
 
+def get_new_limit(task):
+    """
+    Returns a new limit for the given task.
+    This is useful"
+    """
+    if task == "humaneval":
+        return 164
+    if task == "mbpp":
+        return 1000
+    if task == "mercury":
+        return 1889
+    return 1000
 
 def main():
     # -------------------------------
@@ -155,14 +173,14 @@ def main():
     # -------------------------------
     models = [
         "Qwen/Qwen2.5-Coder-0.5B",
-        #"01-ai/Yi-Coder-1.5B"
+        "01-ai/Yi-Coder-1.5B"
     ]
 
     # List of tasks to run in a single call.
     tasks = [
         "humaneval",
         "mbpp",
-        "mercury",
+        #"mercury",
         #"",
         #"",
         #"",
@@ -193,14 +211,14 @@ def main():
     TEMPERATURE = 0.2
     # Number of generation samples per problem.
     # More samples can improve result diversity at the expense of increased computation.
-    N_SAMPLES = 10
+    N_SAMPLES = 1
     # Batch size for generating outputs.
     # A larger batch size speeds up processing by generating in parallel but uses more memory.
-    BATCH_SIZE = 10
+    BATCH_SIZE = 1
     # Limit the number of problems to solve per task.
     # Useful for quick testing or reducing evaluation time.
     # Set to None to solve all problems.
-    LIMIT = 10
+    LIMIT = 1
 
     # ---------- Execution and Saving Options ----------
     # Allow the execution of generated code.
@@ -289,8 +307,11 @@ def main():
                 if common_config is None and "config" in result["result"]:
                     common_config = result["result"]["config"]
 
+            new_limit = LIMIT if LIMIT is not None else get_new_limit(task)
             model_benchmark["benchmark_result"]["tasks"][task] = {
-                "elapsed_time_sec": result["elapsed_time_sec"],
+                "total_tasks": new_limit * N_SAMPLES,
+                "total_elapsed_time_sec": result["total_elapsed_time_sec"],
+                "average_time_per_task_sec": result["total_elapsed_time_sec"] / (new_limit * N_SAMPLES),
                 "max_vram_usage_mb": result["max_vram_usage_mb"],
                 "result": task_result
             }
@@ -300,13 +321,14 @@ def main():
         results.append(model_benchmark)
         rounded_results = round_numbers(results)
         # Save intermediate results.
-        with open("./results/benchmark_results.json", "w") as f:
+        timestamp = datetime.now().strftime("%d%m%Y-%H%M")
+        filename = f"./results/benchmark_result_{timestamp}.json"
+        with open(filename, "w") as f:
             json.dump(rounded_results, f, indent=2)
 
         print(f"\n=== Finished benchmarking model: {model} ===")
 
     print("\nAll benchmarks completed. Results saved to benchmark_results.json")
-
 
 if __name__ == '__main__':
     main()
