@@ -221,7 +221,8 @@ def main():
 
     # safetensors, just the hf repo name
     st_models = [
-        "Qwen/Qwen2.5-Coder-0.5B",
+        #"Qwen/Qwen2.5-Coder-0.5B",
+        "Qwen/Qwen2.5-Coder-3B",
         #"01-ai/Yi-Coder-1.5B"
     ]
 
@@ -436,7 +437,6 @@ def main():
 
         # Attach the common configuration to the model-level benchmark.
         model_benchmark["benchmark_result"]["config"] = common_config
-        results.append(model_benchmark)
         update_json_file(results, filename)
 
         print(f"\n=== Finished benchmarking model: {model} ===")
