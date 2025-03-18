@@ -180,16 +180,16 @@ def main():
     tasks = [
         #"humaneval",
         #"mbpp",
-        "mercury",
+        #"mercury",
         #"codexglue_code_to_text-python-left",
+        #"codexglue_code_to_text-python",
         #"codexglue_code_to_text-go",
         #"codexglue_code_to_text-java",
         #"codexglue_code_to_text-javascript",
         #"codexglue_code_to_text-php",
-        #"codexglue_code_to_text-python",
         #"codexglue_code_to_text-ruby",
-        #"humanevalfixdocs-python",
-        #"humanevalfixtests-python",
+        "humanevalfixdocs-python",
+        "humanevalfixtests-python",
         #"humanevalsynthesize-python",
         #"",
         #"",
@@ -206,7 +206,6 @@ def main():
     ]
 
     # HumanEval and MBPP can be ran with 512 tokens.
-    # APPS requires 1024 tokens.
 
     # ---------- Generation Parameters ----------
     # Maximum token length for each evaluation instance (prompt + generation).
@@ -258,6 +257,13 @@ def main():
     # Set to True when accessing private models.
     USE_AUTH_TOKEN = False
 
+    # ---------- Prompt Configuration ----------
+    # Default is "prompt"
+    # Used for HumanEvalPack with choices of: continue and instruct
+    # HumanEvalFix and HumanEvalExplain require instruct
+    # HumanEvalSynthesize requires continue
+    PROMPT = "instruct"
+
     # -------------------------------
     # Build Command-Line Arguments
     # -------------------------------
@@ -275,6 +281,7 @@ def main():
     add_arg("--limit", LIMIT)
     add_arg("--precision", PRECISION)
     add_arg("--do_sample", DO_SAMPLE)
+    add_arg("--prompt", PROMPT)
 
     # Boolean flags: only added if set to True.
     if ALLOW_CODE_EXECUTION:

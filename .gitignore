@@ -169,3 +169,9 @@ generations*.json
 
 playground/
 /results
+references_humanevalfixtests-python.json
+references_humanevalfixdocs-python.json
+references_codexglue_code_to_text-python.json
+references_codexglue_code_to_text-python-left.json
+references_codexglue_code_to_text-java.json
+logs.json
