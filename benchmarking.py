@@ -173,7 +173,7 @@ def run_single_task_benchmark(model, task, common_args):
     vram_usage_mb = max_vram_usage[0] / (1024 * 1024) if max_vram_usage[0] else None
 
     if "--generation_only" in common_args:
-        benchmark_result = {"message": "No output expected due to generation_only flag"}
+        benchmark_result = {"message": "humanevalexplaindescribe + generation_only = no output. humanevalexplainsynthesize will have output."}
     else:
         benchmark_result = parse_json_from_output(output)
 
@@ -203,6 +203,12 @@ def get_new_limit(task):
     return 0
 
 def main():
+    # FOR SOME TASKS YOU NEED GO, JAVA, JAVASCRIPT, RUST
+    # JAVASCRIPT = sudo apt install nodejs
+    # RUST = sudo apt install rustc cargo
+    # JAVA = sudo apt install default-jdk
+    # GO = sudo apt install golang
+
     os.makedirs("./results/references", exist_ok=True)
     os.makedirs("./results/generations", exist_ok=True)
     os.makedirs("./results/evaluations", exist_ok=True)
@@ -285,14 +291,14 @@ def main():
     TEMPERATURE = 0.2
     # Number of generation samples per problem.
     # More samples can improve result diversity at the expense of increased computation.
-    N_SAMPLES = 10
+    N_SAMPLES = 1
     # Batch size for generating outputs.
     # A larger batch size speeds up processing by generating in parallel but uses more memory.
-    BATCH_SIZE = 10
+    BATCH_SIZE = 1
     # Limit the number of problems to solve per task.
     # Useful for quick testing or reducing evaluation time.
     # Set to None to solve all problems.
-    LIMIT = 10
+    LIMIT = 1
 
     # ---------- Execution and Saving Options ----------
     # Allow the execution of generated code.
@@ -361,15 +367,26 @@ def main():
         common_args.append("--use_auth_token")
 
     # -------------------------------
-    # Run Benchmark for Each Model and Task
+    # Prepare to Save Benchmark Results
     # -------------------------------
     results = []
+    # Create the benchmark file name once using the current timestamp.
+    timestamp = datetime.datetime.now().strftime("%d%m%Y-%H%M")
+    filename = f"./results/benchmark_result_{timestamp}.json"
+    def update_json_file(results, filename):
+        with open(filename, "w") as f:
+            json.dump(round_numbers(results), f, indent=2)
+
+    # -------------------------------
+    # Run Benchmark for Each Model and Task
+    # -------------------------------
     for model in st_models: #, file in gguf_models.items():
         #add_arg("--modelfile", file)
         print(f"\n=== Benchmarking model: {model} ===")
         model_benchmark = {"model": model, "benchmark_result": {"tasks": {}}}
+        results.append(model_benchmark)
         common_config = None
-        for task in tasks_multi:
+        for task in (tasks + tasks_multi):
             print(f"\n--- Running task: {task} ---")
             result = run_single_task_benchmark(model, task, common_args.copy())
             # The benchmark result from the run is expected to contain the task key and a config.
@@ -390,16 +407,12 @@ def main():
                 "max_vram_usage_mb": result["max_vram_usage_mb"],
                 "result": task_result
             }
+            update_json_file(results, filename)
 
         # Attach the common configuration to the model-level benchmark.
         model_benchmark["benchmark_result"]["config"] = common_config
         results.append(model_benchmark)
-        rounded_results = round_numbers(results)
-        # Save intermediate results.
-        timestamp = datetime.datetime.now().strftime("%d%m%Y-%H%M")
-        filename = f"./results/benchmark_result_{timestamp}.json"
-        with open(filename, "w") as f:
-            json.dump(rounded_results, f, indent=2)
+        update_json_file(results, filename)
 
         print(f"\n=== Finished benchmarking model: {model} ===")
 

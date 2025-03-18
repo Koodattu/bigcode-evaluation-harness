@@ -407,7 +407,8 @@ class HumanEvalPackGenerative(HumanEvalPack):
                 [g.replace("public class Main {\n    }", "").strip() for g in gen] for gen in generations
             ]
         elif language == "go":
-            ds = self.get_dataset().select(range(len(generations)))
+            from datasets import Dataset
+            ds = Dataset.from_list(self.get_dataset()).select(range(len(generations)))
             for gen, ref, doc in zip(generations, references, ds):
                 for line in doc["import"].split("\n"):
                     line = line.replace("import", "").replace("(", "").replace(")", "").replace('"', "").strip()
@@ -443,7 +444,8 @@ class HumanEvalPackGenerative(HumanEvalPack):
                         gen[i] = gen[i].replace("package main", "")
                     gen[i] = test_setup_str + other_pkgs_str + gen[i]
         elif language == "rust":
-            ds = self.get_dataset().select(range(len(generations)))
+            from datasets import Dataset
+            ds = Dataset.from_list(self.get_dataset()).select(range(len(generations)))
             main = "fn main(){}\n"
             for gen, doc in zip(generations, ds):
                 declaration = doc["declaration"]
