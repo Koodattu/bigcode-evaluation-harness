@@ -158,11 +158,22 @@ def main():
     tasks = [
         "humaneval",
         "mbpp",
-        "humanevalplus",
-        "mbppplus",
-        #"apps-introductory",
-        #"ds1000-all-completion",
-        #"multiple-js"
+        "mercury",
+        #"",
+        #"",
+        #"",
+        #"",
+        #"",
+        #"",
+        #"",
+        #"",
+        #"",
+        #"",
+        #"",
+        #"",
+        #"",
+        #"",
+        #"",
     ]
 
     # HumanEval and MBPP can be ran with 512 tokens.
@@ -209,7 +220,7 @@ def main():
 
     # ---------- Additional Generation & Model Settings ----------
     # Toggle sampling mode.
-    # If True, generation will use sampling (--do_sample); otherwise, it might use greedy decoding.
+    # If True, generation will use sampling; otherwise, it might use greedy decoding.
     DO_SAMPLE = True
     # Trust remote code when loading models.
     # Some models from the Hugging Face Hub require executing custom code.
@@ -234,6 +245,7 @@ def main():
     add_arg("--batch_size", BATCH_SIZE)
     add_arg("--limit", LIMIT)
     add_arg("--precision", PRECISION)
+    add_arg("--do_sample", DO_SAMPLE)
 
     # Boolean flags: only added if set to True.
     if ALLOW_CODE_EXECUTION:
@@ -242,11 +254,6 @@ def main():
         common_args.append("--save_generations")
     if SAVE_REFERENCES:
         common_args.append("--save_references")
-    # For sampling, explicitly choose do_sample or no_do_sample.
-    if DO_SAMPLE:
-        common_args.append("--do_sample")
-    else:
-        common_args.append("--no_do_sample")
     if TRUST_REMOTE_CODE:
         common_args.append("--trust_remote_code")
     if LOAD_IN_8BIT:
