@@ -180,23 +180,29 @@ def main():
     tasks = [
         #"humaneval",
         #"mbpp",
-        #"mercury",
-        "codexglue_code_to_text-python-left",
+        "mercury",
+        #"codexglue_code_to_text-python-left",
+        #"codexglue_code_to_text-go",
+        #"codexglue_code_to_text-java",
+        #"codexglue_code_to_text-javascript",
+        #"codexglue_code_to_text-php",
+        #"codexglue_code_to_text-python",
+        #"codexglue_code_to_text-ruby",
+        #"humanevalfixdocs-python",
+        #"humanevalfixtests-python",
+        #"humanevalsynthesize-python",
         #"",
         #"",
         #"",
         #"",
         #"",
         #"",
-        #"",
-        #"",
-        #"",
-        #"",
-        #"",
-        #"",
-        #"",
-        #"",
-        #"",
+    ]
+
+    # List of multi-run tasks
+    tasks_multi = [
+        "humanevalexplaindescribe-python",
+        "humanevalexplainsynthesize-python",
     ]
 
     # HumanEval and MBPP can be ran with 512 tokens.
@@ -244,7 +250,7 @@ def main():
     # ---------- Additional Generation & Model Settings ----------
     # Toggle sampling mode.
     # If True, generation will use sampling; otherwise, it might use greedy decoding.
-    DO_SAMPLE = False
+    DO_SAMPLE = True
     # Trust remote code when loading models.
     # Some models from the Hugging Face Hub require executing custom code.
     TRUST_REMOTE_CODE = True
