@@ -84,6 +84,10 @@ def run_single_task_benchmark(model, task, common_args):
     Measures execution time and monitors VRAM usage independently.
     Returns a dictionary with elapsed time, max VRAM usage, and the parsed benchmark result.
     """
+    common_args.extend(["--save_references_path", "./results/references/" + model + "_" + task + ".json"])
+    common_args.extend(["--save_generations_path", "./results/generations/" + model + "_" + task + ".json"])
+    common_args.extend(["--metric_output_path", "./results/evaluations/" + model + "_" + task + ".json"])
+
     command = ["accelerate", "launch", "main.py", "--model", model] + common_args + ["--tasks", task]
     print(f"\nRunning command for task '{task}':")
     print(" ".join(command))
@@ -296,7 +300,7 @@ def main():
         results.append(model_benchmark)
         rounded_results = round_numbers(results)
         # Save intermediate results.
-        with open("benchmark_results.json", "w") as f:
+        with open("./results/benchmark_results.json", "w") as f:
             json.dump(rounded_results, f, indent=2)
 
         print(f"\n=== Finished benchmarking model: {model} ===")
