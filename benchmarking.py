@@ -123,6 +123,8 @@ def run_single_task_benchmark(model, task, common_args):
     # greedy decoding recommended for codexglue tasks
     if "codexglue" in task:
         common_args = update_arg(common_args, "--do_sample", "False")
+        common_args = update_arg(common_args, "--n_samples", "1")
+        common_args = update_arg(common_args, "--batch_size", "1")
 
     command = ["accelerate", "launch", "main.py", "--model", model] + common_args + ["--tasks", task]
     print(f"\nRunning command for task '{task}':")
@@ -195,11 +197,11 @@ def get_new_limit(task):
     if "humaneval" in task:
         return 164
     if "mbpp" in task:
-        return 1000
+        return 500
     if "mercury" in task:
-        return 1889
+        return 256
     if "codexglue" in task:
-        return 1000
+        return 14918
     return 0
 
 def main():
@@ -220,7 +222,7 @@ def main():
     # safetensors, just the hf repo name
     st_models = [
         "Qwen/Qwen2.5-Coder-0.5B",
-        "01-ai/Yi-Coder-1.5B"
+        #"01-ai/Yi-Coder-1.5B"
     ]
 
     # gguf, repo name and file name pairs
@@ -230,10 +232,18 @@ def main():
     #}
 
     # List of tasks to run in a single call.
-    tasks = [
+    basic_tasks = [
         "humaneval",
         "mbpp",
+    ]
+
+    # Extra tasks
+    extra_tasks = [
         "mercury",
+    ]
+
+    # CodeXGLUE Tasks
+    tasks_codexglue = [
         "codexglue_code_to_text-python-left",
         "codexglue_code_to_text-python",
         "codexglue_code_to_text-go",
@@ -241,18 +251,31 @@ def main():
         "codexglue_code_to_text-javascript",
         "codexglue_code_to_text-php",
         "codexglue_code_to_text-ruby",
+    ]
+
+    # HumanEvalPack FixDocs Tasks
+    tasks_fix_docs = [   
         "humanevalfixdocs-python",
         "humanevalfixdocs-cpp",
         "humanevalfixdocs-go",
         "humanevalfixdocs-java",
         "humanevalfixdocs-js",
         "humanevalfixdocs-rust",
+    ]
+
+    # HumanEvalPack FixTests Tasks
+    tasks_fix_tests = [   
         "humanevalfixtests-python",
         "humanevalfixtests-cpp",
         "humanevalfixtests-go",
         "humanevalfixtests-java",
         "humanevalfixtests-js",
         "humanevalfixtests-rust",
+    ]
+
+
+    # HumanEvalPack Synthesize Tasks
+    tasks_synth = [   
         "humanevalsynthesize-python",
         "humanevalsynthesize-cpp",
         "humanevalsynthesize-go",
@@ -261,8 +284,8 @@ def main():
         "humanevalsynthesize-rust",
     ]
 
-    # List of multi-run tasks
-    tasks_multi = [
+    # HumanEvalPack Explain Tasks, Describe + Synthesize pairs
+    tasks_explain = [
         "humanevalexplaindescribe-python",
         "humanevalexplainsynthesize-python",
         "humanevalexplaindescribe-cpp",
@@ -276,6 +299,8 @@ def main():
         "humanevalexplaindescribe-rust",
         "humanevalexplainsynthesize-rust",
     ]
+
+    all_tasks = basic_tasks + extra_tasks + tasks_codexglue + tasks_fix_docs + tasks_fix_tests + tasks_synth + tasks_explain
 
     # ---------- Model Configuration ----------
     # Possible values: causal, seq2seq (safetensors) or gguf
@@ -291,14 +316,14 @@ def main():
     TEMPERATURE = 0.2
     # Number of generation samples per problem.
     # More samples can improve result diversity at the expense of increased computation.
-    N_SAMPLES = 1
+    N_SAMPLES = 10
     # Batch size for generating outputs.
     # A larger batch size speeds up processing by generating in parallel but uses more memory.
-    BATCH_SIZE = 1
+    BATCH_SIZE = 10
     # Limit the number of problems to solve per task.
     # Useful for quick testing or reducing evaluation time.
     # Set to None to solve all problems.
-    LIMIT = 1
+    LIMIT = 10
 
     # ---------- Execution and Saving Options ----------
     # Allow the execution of generated code.
@@ -386,7 +411,7 @@ def main():
         model_benchmark = {"model": model, "benchmark_result": {"tasks": {}}}
         results.append(model_benchmark)
         common_config = None
-        for task in (tasks + tasks_multi):
+        for task in all_tasks:
             print(f"\n--- Running task: {task} ---")
             result = run_single_task_benchmark(model, task, common_args.copy())
             # The benchmark result from the run is expected to contain the task key and a config.
