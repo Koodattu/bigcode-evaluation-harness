@@ -9,3 +9,4 @@ fsspec>=2023.12.2
 lctk 
 sortedcontainers
 pynvml
+bitsandbytes

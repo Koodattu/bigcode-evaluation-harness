@@ -171,15 +171,23 @@ def main():
     # -------------------------------
     # Configuration Section
     # -------------------------------
-    models = [
+
+    # safetensors, just the hf repo name
+    st_models = [
         "Qwen/Qwen2.5-Coder-0.5B",
-        #"01-ai/Yi-Coder-1.5B"
+        "01-ai/Yi-Coder-1.5B"
     ]
+
+    # gguf, repo name and file name pairs
+    gguf_models = {
+        "bartowski/Qwen2.5-Coder-0.5B-GGUF": "Qwen2.5-Coder-0.5B-Q4_K_M.gguf",
+        "QuantFactory/Yi-Coder-1.5B-GGUF": "Yi-Coder-1.5B.Q4_K_M.gguf",
+    }
 
     # List of tasks to run in a single call.
     tasks = [
-        #"humaneval",
-        #"mbpp",
+        "humaneval",
+        "mbpp",
         #"mercury",
         #"codexglue_code_to_text-python-left",
         #"codexglue_code_to_text-python",
@@ -188,8 +196,8 @@ def main():
         #"codexglue_code_to_text-javascript",
         #"codexglue_code_to_text-php",
         #"codexglue_code_to_text-ruby",
-        "humanevalfixdocs-python",
-        "humanevalfixtests-python",
+        #"humanevalfixdocs-python",
+        #"humanevalfixtests-python",
         #"humanevalsynthesize-python",
         #"",
         #"",
@@ -205,13 +213,15 @@ def main():
         "humanevalexplainsynthesize-python",
     ]
 
-    # HumanEval and MBPP can be ran with 512 tokens.
+    # ---------- Model Configuration ----------
+    # Possible values: safetensors or gguf
+    MODEL_TYPE = "gguf"
 
     # ---------- Generation Parameters ----------
     # Maximum token length for each evaluation instance (prompt + generation).
     # Increasing this value allows for longer outputs but raises memory usage and generation time.
-    # For most tasks default 512 should be sufficient, but more complex tasks may require a higher value like 2048.
-    MAX_LENGTH_GENERATION = 1024
+    # For most tasks default 512 should be sufficient, but more complex tasks may require a higher value like 1024 or 2048.
+    MAX_LENGTH_GENERATION = 512
     # Temperature controls the randomness in generation.
     # Lower values (near 0) yield more deterministic outputs, while higher values increase randomness.
     TEMPERATURE = 0.2
