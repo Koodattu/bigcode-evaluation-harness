@@ -188,34 +188,53 @@ def main():
     tasks = [
         "humaneval",
         "mbpp",
-        #"mercury",
-        #"codexglue_code_to_text-python-left",
-        #"codexglue_code_to_text-python",
-        #"codexglue_code_to_text-go",
-        #"codexglue_code_to_text-java",
-        #"codexglue_code_to_text-javascript",
-        #"codexglue_code_to_text-php",
-        #"codexglue_code_to_text-ruby",
-        #"humanevalfixdocs-python",
-        #"humanevalfixtests-python",
-        #"humanevalsynthesize-python",
-        #"",
-        #"",
-        #"",
-        #"",
-        #"",
-        #"",
+        "mercury",
+        "codexglue_code_to_text-python-left",
+        "codexglue_code_to_text-python",
+        "codexglue_code_to_text-go",
+        "codexglue_code_to_text-java",
+        "codexglue_code_to_text-javascript",
+        "codexglue_code_to_text-php",
+        "codexglue_code_to_text-ruby",
+        "humanevalfixdocs-python",
+        "humanevalfixdocs-cpp",
+        "humanevalfixdocs-go",
+        "humanevalfixdocs-java",
+        "humanevalfixdocs-js",
+        "humanevalfixdocs-rust",
+        "humanevalfixtests-python",
+        "humanevalfixtests-cpp",
+        "humanevalfixtests-go",
+        "humanevalfixtests-java",
+        "humanevalfixtests-js",
+        "humanevalfixtests-rust",
+        "humanevalsynthesize-python",
+        "humanevalsynthesize-cpp",
+        "humanevalsynthesize-go",
+        "humanevalsynthesize-java",
+        "humanevalsynthesize-js",
+        "humanevalsynthesize-rust",
     ]
 
     # List of multi-run tasks
     tasks_multi = [
         "humanevalexplaindescribe-python",
         "humanevalexplainsynthesize-python",
+        "humanevalexplaindescribe-cpp",
+        "humanevalexplainsynthesize-cpp",
+        "humanevalexplaindescribe-go",
+        "humanevalexplainsynthesize-go",
+        "humanevalexplaindescribe-java",
+        "humanevalexplainsynthesize-java",
+        "humanevalexplaindescribe-js",
+        "humanevalexplainsynthesize-js",
+        "humanevalexplaindescribe-rust",
+        "humanevalexplainsynthesize-rust",
     ]
 
     # ---------- Model Configuration ----------
-    # Possible values: safetensors or gguf
-    MODEL_TYPE = "gguf"
+    # Possible values: causal (safetensors) or gguf
+    MODEL_TYPE = "causal"
 
     # ---------- Generation Parameters ----------
     # Maximum token length for each evaluation instance (prompt + generation).
@@ -227,14 +246,14 @@ def main():
     TEMPERATURE = 0.2
     # Number of generation samples per problem.
     # More samples can improve result diversity at the expense of increased computation.
-    N_SAMPLES = 10
+    N_SAMPLES = 1
     # Batch size for generating outputs.
     # A larger batch size speeds up processing by generating in parallel but uses more memory.
-    BATCH_SIZE = 10
+    BATCH_SIZE = 1
     # Limit the number of problems to solve per task.
     # Useful for quick testing or reducing evaluation time.
     # Set to None to solve all problems.
-    LIMIT = 10
+    LIMIT = 1
 
     # ---------- Execution and Saving Options ----------
     # Allow the execution of generated code.
@@ -250,7 +269,7 @@ def main():
     # Precision for model computations.
     # Lower precision can speed up computations and lower memory usage.
     # Options include "fp32", "fp16", or "bf16".
-    PRECISION = "fp16"
+    PRECISION = "bf16"
     # Load the model in 8-bit mode to reduce memory footprint.
     LOAD_IN_8BIT = False
     # Load the model in 4-bit mode for further memory savings.
@@ -292,6 +311,7 @@ def main():
     add_arg("--precision", PRECISION)
     add_arg("--do_sample", DO_SAMPLE)
     add_arg("--prompt", PROMPT)
+    add_arg("--modeltype", MODEL_TYPE)
 
     # Boolean flags: only added if set to True.
     if ALLOW_CODE_EXECUTION:
@@ -313,7 +333,8 @@ def main():
     # Run Benchmark for Each Model and Task
     # -------------------------------
     results = []
-    for model in models:
+    for model in st_models: #, file in gguf_models.items():
+        #add_arg("--modelfile", file)
         print(f"\n=== Benchmarking model: {model} ===")
         model_benchmark = {"model": model, "benchmark_result": {"tasks": {}}}
         common_config = None

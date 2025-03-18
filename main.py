@@ -47,7 +47,12 @@ def parse_args():
     parser.add_argument(
         "--modeltype",
         default="causal",
-        help="AutoModel to use, it can be causal or seq2seq",
+        help="AutoModel to use, it can be causal or seq2seq or gguf",
+    )
+    parser.add_argument(
+        "--modelfile",
+        default=None,
+        help="Only used when modeltype is gguf, filename from the model repo",
     )
     parser.add_argument(
         "--peft_model",
@@ -305,9 +310,18 @@ def main():
                 args.model,
                 **model_kwargs,
             )
+        elif args.modeltype == "gguf":
+            if not args.modelfile:
+                raise ValueError("GGUF model requires a modelfile to be specified")
+            print("Loading AutoModelForCausalLM from modelfile GGUF")
+            model_kwargs["gguf_file"] = args.modelfile
+            model = AutoModelForCausalLM.from_pretrained(
+                args.model,
+                **model_kwargs,
+            )
         else:
             raise ValueError(
-                f"Non valid modeltype {args.modeltype}, choose from: causal, seq2seq"
+                f"Non valid modeltype {args.modeltype}, choose from: causal, seq2seq, gguf"
             )
 
         if args.peft_model:
@@ -326,6 +340,18 @@ def main():
                 trust_remote_code=args.trust_remote_code,
                 token=args.use_auth_token,
                 padding_side="left",  
+            )
+        if args.modelfile:
+            # used by gguf models
+            print("Loading AutoTokenizer from modelfile GGUF")
+            tokenizer = AutoTokenizer.from_pretrained(
+                args.model,
+                revision=args.revision,
+                trust_remote_code=args.trust_remote_code,
+                token=args.use_auth_token,
+                truncation_side="left",
+                padding_side="right",
+                gguf_file=args.modelfile,
             )
         else:
             # used by default for most models
