@@ -203,7 +203,7 @@ class GeneralCodeToText(Task):
         bleu_score = compute_codexglue_code_to_text_bleu(
             (ref, gen[0]) for ref, gen in zip(references, generations)
         )
-        return {"blue": bleu_score}
+        return {"bleu_score": bleu_score}
 
 
 class LeftCodeToText(GeneralCodeToText):

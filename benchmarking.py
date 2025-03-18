@@ -173,14 +173,15 @@ def main():
     # -------------------------------
     models = [
         "Qwen/Qwen2.5-Coder-0.5B",
-        "01-ai/Yi-Coder-1.5B"
+        #"01-ai/Yi-Coder-1.5B"
     ]
 
     # List of tasks to run in a single call.
     tasks = [
-        "humaneval",
-        "mbpp",
+        #"humaneval",
+        #"mbpp",
         #"mercury",
+        "codexglue_code_to_text-python-left",
         #"",
         #"",
         #"",
@@ -243,7 +244,7 @@ def main():
     # ---------- Additional Generation & Model Settings ----------
     # Toggle sampling mode.
     # If True, generation will use sampling; otherwise, it might use greedy decoding.
-    DO_SAMPLE = True
+    DO_SAMPLE = False
     # Trust remote code when loading models.
     # Some models from the Hugging Face Hub require executing custom code.
     TRUST_REMOTE_CODE = True
@@ -321,7 +322,7 @@ def main():
         results.append(model_benchmark)
         rounded_results = round_numbers(results)
         # Save intermediate results.
-        timestamp = datetime.now().strftime("%d%m%Y-%H%M")
+        timestamp = datetime.datetime.now().strftime("%d%m%Y-%H%M")
         filename = f"./results/benchmark_result_{timestamp}.json"
         with open(filename, "w") as f:
             json.dump(rounded_results, f, indent=2)
