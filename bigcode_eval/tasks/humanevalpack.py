@@ -469,6 +469,7 @@ class HumanEvalPackGenerative(HumanEvalPack):
             language=language,
             timeout=timeout,
             num_workers=num_workers,
+            k=[1, 2, 5, 10, 100],
         )
         # Write logs to json
         with open("logs.json", "w") as f:

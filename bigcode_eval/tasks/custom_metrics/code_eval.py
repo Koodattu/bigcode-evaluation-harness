@@ -126,7 +126,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE."""
 
-def compute_code_eval(predictions, references, k=[1, 10, 100], num_workers=4, timeout=3.0):
+def compute_code_eval(predictions, references, k=[1, 2, 5, 10, 100], num_workers=4, timeout=3.0):
     """Returns the scores"""
 
     # We want the following pass@k: pass@1, pass@2, pass@5, pass@10, pass@100
