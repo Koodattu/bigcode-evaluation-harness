@@ -200,3 +200,6 @@ references_codexglue_code_to_text-go.json
 references_mercury.json
 rust/Cargo.toml
 /rust
+references_humanevalexplainsynthesize-python.json
+references_humanevalexplainsynthesize-go.json
+references_humanevalexplainsynthesize-cpp.json

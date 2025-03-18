@@ -13,7 +13,6 @@ except ImportError:
     print("Please install pynvml (pip install pynvml) to measure VRAM usage.")
     sys.exit(1)
 
-
 def monitor_vram(handle, stop_event, interval, max_vram_usage):
     """
     Monitors VRAM usage on the given GPU handle until stop_event is set.
@@ -60,7 +59,6 @@ def parse_json_from_output(output):
     print("Error parsing JSON output: No valid JSON object found.")
     return None
 
-
 def clean_config(config):
     """
     Removes keys from the config that are not needed in the output.
@@ -78,6 +76,22 @@ def clean_config(config):
         config.pop(key, None)
     return config
 
+def update_arg(args, flag, new_value):
+    """
+    Update the value of a given flag in the args list.
+    If the flag exists, update the following element.
+    If it does not exist, append the flag and new_value.
+    """
+    if flag in args:
+        idx = args.index(flag)
+        # If there's a value following the flag, update it
+        if idx + 1 < len(args):
+            args[idx + 1] = new_value
+        else:
+            args.append(new_value)
+    else:
+        args.extend([flag, new_value])
+    return args
 
 def run_single_task_benchmark(model, task, common_args):
     """
@@ -87,12 +101,28 @@ def run_single_task_benchmark(model, task, common_args):
     """
     model_name = model.split("/")[1]
     # Create directories if they don't exist
-    os.makedirs("./results/references", exist_ok=True)
-    os.makedirs("./results/generations", exist_ok=True)
-    os.makedirs("./results/evaluations", exist_ok=True)
     common_args.extend(["--save_references_path", "./results/references/" + model_name + ".json"])
     common_args.extend(["--save_generations_path", "./results/generations/" + model_name + ".json"])
     common_args.extend(["--metric_output_path", "./results/evaluations/" + model_name + "_" + task + ".json"])
+
+    # Only generation is needed for HumanEvalExplainDescribe tasks.
+    if "humanevalexplaindescribe" in task:
+        common_args.append("--generation_only")
+    # Load the data path for HumanEvalExplainDescribe and HumanEvalExplainSynthesize tasks.
+    if "humanevalexplainsynthesize" in task:
+        prog_lang = task.split("-")[1]
+        common_args.extend(["--load_data_path", "./results/generations/" + model_name + "_humanevalexplaindescribe-" + prog_lang + ".json"])
+
+    # Used for HumanEvalPack with choices of: continue and instruct
+    # HumanEvalFix and HumanEvalExplain require instruct
+    # HumanEvalSynthesize requires continue
+    if "humanevalfix" in task or "humanevalexplain" in task:
+        common_args.extend(["--prompt", "instruct"])
+    if "humanevalsynthesize" in task:
+        common_args.extend(["--prompt", "continue"])
+    # greedy decoding recommended for codexglue tasks
+    if "codexglue" in task:
+        common_args = update_arg(common_args, "--do_sample", "False")
 
     command = ["accelerate", "launch", "main.py", "--model", model] + common_args + ["--tasks", task]
     print(f"\nRunning command for task '{task}':")
@@ -142,7 +172,10 @@ def run_single_task_benchmark(model, task, common_args):
     elapsed_time = time.time() - start_time
     vram_usage_mb = max_vram_usage[0] / (1024 * 1024) if max_vram_usage[0] else None
 
-    benchmark_result = parse_json_from_output(output)
+    if "--generation_only" in common_args:
+        benchmark_result = {"message": "No output expected due to generation_only flag"}
+    else:
+        benchmark_result = parse_json_from_output(output)
 
     # Clean the config from the benchmark result if it exists.
     if benchmark_result and "config" in benchmark_result:
@@ -159,15 +192,21 @@ def get_new_limit(task):
     Returns a new limit for the given task.
     This is useful"
     """
-    if task == "humaneval":
+    if "humaneval" in task:
         return 164
-    if task == "mbpp":
+    if "mbpp" in task:
         return 1000
-    if task == "mercury":
+    if "mercury" in task:
         return 1889
-    return 1000
+    if "codexglue" in task:
+        return 1000
+    return 0
 
 def main():
+    os.makedirs("./results/references", exist_ok=True)
+    os.makedirs("./results/generations", exist_ok=True)
+    os.makedirs("./results/evaluations", exist_ok=True)
+    
     # -------------------------------
     # Configuration Section
     # -------------------------------
@@ -179,10 +218,10 @@ def main():
     ]
 
     # gguf, repo name and file name pairs
-    gguf_models = {
-        "bartowski/Qwen2.5-Coder-0.5B-GGUF": "Qwen2.5-Coder-0.5B-Q4_K_M.gguf",
-        "QuantFactory/Yi-Coder-1.5B-GGUF": "Yi-Coder-1.5B.Q4_K_M.gguf",
-    }
+    #gguf_models = {
+        #"bartowski/Qwen2.5-Coder-0.5B-GGUF": "Qwen2.5-Coder-0.5B-Q4_K_M.gguf",
+        #"QuantFactory/Yi-Coder-1.5B-GGUF": "Yi-Coder-1.5B.Q4_K_M.gguf",
+    #}
 
     # List of tasks to run in a single call.
     tasks = [
@@ -233,7 +272,7 @@ def main():
     ]
 
     # ---------- Model Configuration ----------
-    # Possible values: causal (safetensors) or gguf
+    # Possible values: causal, seq2seq (safetensors) or gguf
     MODEL_TYPE = "causal"
 
     # ---------- Generation Parameters ----------
@@ -246,14 +285,14 @@ def main():
     TEMPERATURE = 0.2
     # Number of generation samples per problem.
     # More samples can improve result diversity at the expense of increased computation.
-    N_SAMPLES = 1
+    N_SAMPLES = 10
     # Batch size for generating outputs.
     # A larger batch size speeds up processing by generating in parallel but uses more memory.
-    BATCH_SIZE = 1
+    BATCH_SIZE = 10
     # Limit the number of problems to solve per task.
     # Useful for quick testing or reducing evaluation time.
     # Set to None to solve all problems.
-    LIMIT = 1
+    LIMIT = 10
 
     # ---------- Execution and Saving Options ----------
     # Allow the execution of generated code.
@@ -286,13 +325,6 @@ def main():
     # Set to True when accessing private models.
     USE_AUTH_TOKEN = False
 
-    # ---------- Prompt Configuration ----------
-    # Default is "prompt"
-    # Used for HumanEvalPack with choices of: continue and instruct
-    # HumanEvalFix and HumanEvalExplain require instruct
-    # HumanEvalSynthesize requires continue
-    PROMPT = "instruct"
-
     # -------------------------------
     # Build Command-Line Arguments
     # -------------------------------
@@ -310,7 +342,6 @@ def main():
     add_arg("--limit", LIMIT)
     add_arg("--precision", PRECISION)
     add_arg("--do_sample", DO_SAMPLE)
-    add_arg("--prompt", PROMPT)
     add_arg("--modeltype", MODEL_TYPE)
 
     # Boolean flags: only added if set to True.
@@ -338,10 +369,9 @@ def main():
         print(f"\n=== Benchmarking model: {model} ===")
         model_benchmark = {"model": model, "benchmark_result": {"tasks": {}}}
         common_config = None
-
-        for task in tasks:
+        for task in tasks_multi:
             print(f"\n--- Running task: {task} ---")
-            result = run_single_task_benchmark(model, task, common_args)
+            result = run_single_task_benchmark(model, task, common_args.copy())
             # The benchmark result from the run is expected to contain the task key and a config.
             task_result = None
             if result["result"]:
