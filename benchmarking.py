@@ -218,14 +218,14 @@ def main():
     TEMPERATURE = 0.2
     # Number of generation samples per problem.
     # More samples can improve result diversity at the expense of increased computation.
-    N_SAMPLES = 1
+    N_SAMPLES = 10
     # Batch size for generating outputs.
     # A larger batch size speeds up processing by generating in parallel but uses more memory.
-    BATCH_SIZE = 1
+    BATCH_SIZE = 10
     # Limit the number of problems to solve per task.
     # Useful for quick testing or reducing evaluation time.
     # Set to None to solve all problems.
-    LIMIT = 1
+    LIMIT = 10
 
     # ---------- Execution and Saving Options ----------
     # Allow the execution of generated code.
@@ -316,9 +316,9 @@ def main():
 
             new_limit = LIMIT if LIMIT is not None else get_new_limit(task)
             model_benchmark["benchmark_result"]["tasks"][task] = {
-                "total_tasks": new_limit * N_SAMPLES,
+                "total_generations": new_limit * N_SAMPLES,
                 "total_elapsed_time_sec": result["total_elapsed_time_sec"],
-                "average_time_per_task_sec": result["total_elapsed_time_sec"] / (new_limit * N_SAMPLES),
+                "average_time_per_generation_sec": result["total_elapsed_time_sec"] / (new_limit * N_SAMPLES),
                 "max_vram_usage_mb": result["max_vram_usage_mb"],
                 "result": task_result
             }

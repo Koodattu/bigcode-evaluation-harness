@@ -333,6 +333,8 @@ def estimate_pass_at_k(num_samples, num_correct, k):
 
 
 def estimate_beyond_at_k(beyonds, k):
+    if len(beyonds) == 0:
+        return 0
     return sum([sum(b[:k]) / k for b in beyonds]) / len(beyonds)
 
 
@@ -423,9 +425,9 @@ def compute_beyond_eval(generations_list, reference_list, timeout=10):
         beyond = scores[difficulty]['beyond_c']
 
         pass_at_k = {f"{difficulty}_pass@{k}": estimate_pass_at_k(total, correct, k).mean(
-        ) for k in [1, 3, 5, 10, 15, 20, 30, 50, 100] if (total >= k).all()}
+        ) for k in [1, 2, 5, 10] if (total >= k).all()}
         beyond_at_k = {f"{difficulty}_beyond@{k}": estimate_beyond_at_k(
-            beyond, k) for k in [1, 3, 5, 10, 15, 20, 30, 50, 100] if (total >= k).all()}
+            beyond, k) for k in [1, 2, 5, 10] if (total >= k).all()}
 
         results.update(pass_at_k)
         results.update(beyond_at_k)
