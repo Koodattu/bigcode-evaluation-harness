@@ -387,7 +387,7 @@ def main():
                 )
                 if accelerator.is_main_process:
                     save_generations_path = f"{os.path.splitext(args.save_generations_path)[0]}_{task}.json"
-                    save_references_path = f"{os.path.splitext(args.save_generations_path)[0]}_{task}.json"
+                    save_references_path = f"{os.path.splitext(args.save_references_path)[0]}_{task}.json"
                     evaluator.save_json_files(
                         generations,
                         references,
