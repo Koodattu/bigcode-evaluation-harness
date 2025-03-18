@@ -129,6 +129,9 @@ THE SOFTWARE."""
 def compute_code_eval(predictions, references, k=[1, 10, 100], num_workers=4, timeout=3.0):
     """Returns the scores"""
 
+    # We want the following pass@k: pass@1, pass@2, pass@5, pass@10, pass@100
+    k = [1, 2, 5, 10, 100]
+
     if os.getenv("HF_ALLOW_CODE_EVAL", 0) != "1":
         raise ValueError(_WARNING)
 
