@@ -57,7 +57,7 @@ def parse_json_from_output(output):
     if valid_obj is not None:
         return valid_obj
     print("Error parsing JSON output: No valid JSON object found.")
-    return None
+    return {"message": "Error parsing JSON output: No valid JSON object found."}
 
 def clean_config(config):
     """
@@ -189,7 +189,7 @@ def run_single_task_benchmark(model, task, common_args):
     return {
         "total_elapsed_time_sec": elapsed_time,
         "max_vram_usage_mb": vram_usage_mb,
-        "result": benchmark_result  # expected to include the task key and config
+        "result": benchmark_result
     }
 
 def get_new_limit(task):
