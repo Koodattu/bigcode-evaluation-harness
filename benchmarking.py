@@ -150,7 +150,7 @@ def run_single_task_benchmark(model, task, common_args):
         common_args = update_arg(common_args, "--n_samples", "1")
         common_args = update_arg(common_args, "--batch_size", "1")
     # mercury requires max length generation of 2048
-    if "mercury" in task:
+    if "mercury" or "humanevalfixtests" in task:
         common_args = update_arg(common_args, "--max_length_generation", "2048")
 
     command = ["accelerate", "launch", "main.py", "--model", model] + common_args + ["--tasks", task]
