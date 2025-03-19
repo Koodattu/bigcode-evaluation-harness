@@ -183,7 +183,7 @@ def run_single_task_benchmark(model, task, common_args):
         benchmark_result = parse_json_from_output(output)
 
     # Clean the config from the benchmark result if it exists.
-    if benchmark_result and "config" in benchmark_result:
+    if isinstance(benchmark_result, dict) and "config" in benchmark_result:
         benchmark_result["config"] = clean_config(benchmark_result["config"])
 
     return {
@@ -194,8 +194,7 @@ def run_single_task_benchmark(model, task, common_args):
 
 def get_new_limit(task):
     """
-    Returns a new limit for the given task.
-    This is useful"
+    Returns a new limit for calculating the total number of generations for a task when limit is None.
     """
     if "humaneval" in task:
         return 164
