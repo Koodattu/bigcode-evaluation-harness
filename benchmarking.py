@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import datetime
+import re
 import subprocess
 import time
 import json
@@ -37,27 +38,54 @@ def round_numbers(obj):
         return round(obj, 2)
     else:
         return obj
+    
+def find_json_object(text):
+    """
+    Finds the first balanced JSON object in the text.
+    Returns the substring if found, or None otherwise.
+    """
+    start = text.find('{')
+    if start == -1:
+        return None
+    open_braces = 0
+    for i in range(start, len(text)):
+        if text[i] == '{':
+            open_braces += 1
+        elif text[i] == '}':
+            open_braces -= 1
+            if open_braces == 0:
+                return text[start:i+1]
+    return None
 
 def parse_json_from_output(output):
     """
-    Extracts a valid JSON object from the subprocess output.
-    This updated version scans through the output using JSONDecoder.raw_decode,
-    which is useful when there is non-JSON content (such as for apps-introductory).
+    Attempts to extract the last JSON block printed by the harness.
+    This function splits the output into lines, finds the first line starting with '{'
+    (assuming that begins the JSON block), and then progressively trims lines from the bottom
+    until the candidate can be parsed. Any standalone NaN values are replaced with null.
     """
-    decoder = json.JSONDecoder()
-    pos = 0
-    valid_obj = None
-    while pos < len(output):
+    lines = output.splitlines()
+    candidate_lines = []
+    in_json = False
+    for line in lines:
+        if not in_json and line.lstrip().startswith("{"):
+            in_json = True
+        if in_json:
+            candidate_lines.append(line)
+    candidate = "\n".join(candidate_lines).strip()
+
+    # Iteratively trim the candidate until json.loads succeeds.
+    while candidate:
         try:
-            obj, pos_new = decoder.raw_decode(output, pos)
-            valid_obj = obj  # save the most recent successfully decoded JSON object
-            pos = pos_new
-        except json.JSONDecodeError:
-            pos += 1
-    if valid_obj is not None:
-        return valid_obj
-    print("Error parsing JSON output: No valid JSON object found.")
-    return {"message": "Error parsing JSON output: No valid JSON object found."}
+            # Replace standalone NaN with null.
+            candidate_fixed = re.sub(r'\bNaN\b', 'null', candidate)
+            return json.loads(candidate_fixed)
+        except Exception as e:
+            # If parsing fails, remove the last line and try again.
+            candidate_lines = candidate_lines[:-1]
+            candidate = "\n".join(candidate_lines).strip()
+    print("No valid JSON found in output.")
+    return None
 
 def clean_config(config):
     """
@@ -183,7 +211,7 @@ def run_single_task_benchmark(model, task, common_args):
         benchmark_result = parse_json_from_output(output)
 
     # Clean the config from the benchmark result if it exists.
-    if isinstance(benchmark_result, dict) and "config" in benchmark_result:
+    if benchmark_result and "config" in benchmark_result:
         benchmark_result["config"] = clean_config(benchmark_result["config"])
 
     return {
@@ -326,7 +354,7 @@ def main():
     # Limit the number of problems to solve per task.
     # Useful for quick testing or reducing evaluation time.
     # Set to None to solve all problems.
-    LIMIT = 10
+    LIMIT = 1
 
     # ---------- Execution and Saving Options ----------
     # Allow the execution of generated code.
