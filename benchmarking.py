@@ -38,24 +38,20 @@ def round_numbers(obj):
         return round(obj, 2)
     else:
         return obj
-    
-def find_json_object(text):
+
+def read_json_from_file(common_args):
     """
-    Finds the first balanced JSON object in the text.
-    Returns the substring if found, or None otherwise.
+    Reads the JSON content from the given file path and returns the parsed JSON object.
+    If the file cannot be read or parsed, an error message is printed and None is returned.
     """
-    start = text.find('{')
-    if start == -1:
+    metric_output_index = common_args.index("--metric_output_path")
+    metric_output_path = common_args[metric_output_index + 1]
+    try:
+        with open(metric_output_path, "r") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Error reading JSON file at {metric_output_path}: {e}")
         return None
-    open_braces = 0
-    for i in range(start, len(text)):
-        if text[i] == '{':
-            open_braces += 1
-        elif text[i] == '}':
-            open_braces -= 1
-            if open_braces == 0:
-                return text[start:i+1]
-    return None
 
 def parse_json_from_output(output):
     """
@@ -208,7 +204,7 @@ def run_single_task_benchmark(model, task, common_args):
     if "--generation_only" in common_args:
         benchmark_result = {"message": "humanevalexplaindescribe + generation_only = no output. humanevalexplainsynthesize will have output."}
     else:
-        benchmark_result = parse_json_from_output(output)
+        benchmark_result = read_json_from_file(common_args)
 
     # Clean the config from the benchmark result if it exists.
     if benchmark_result and "config" in benchmark_result:
