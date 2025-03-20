@@ -435,6 +435,10 @@ def main():
         with open(args.metric_output_path, "w") as f:
             f.write(dumped)
 
+    # Clean up
+    if torch.distributed.is_initialized():
+        torch.distributed.destroy_process_group()
+
 
 if __name__ == "__main__":
     main()

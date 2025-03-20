@@ -29,6 +29,22 @@ def monitor_vram(handle, stop_event, interval, max_vram_usage):
             print("Error monitoring VRAM:", e)
         time.sleep(interval)
 
+def monitor_vram_multi_gpu(handles, stop_event, interval, max_vram_usages):
+    """
+    Monitors VRAM usage on all provided GPU handles until stop_event is set.
+    The maximum observed usage (in bytes) is stored in max_vram_usages[gpu_index].
+    """
+    while not stop_event.is_set():
+        for gpu_index, handle in enumerate(handles):
+            try:
+                meminfo = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                usage = meminfo.used  # in bytes
+                if usage > max_vram_usages[gpu_index]:
+                    max_vram_usages[gpu_index] = usage
+            except Exception as e:
+                print(f"Error monitoring VRAM on GPU {gpu_index}:", e)
+        time.sleep(interval)
+
 def round_numbers(obj):
     if isinstance(obj, dict):
         return {k: round_numbers(v) for k, v in obj.items()}
@@ -150,7 +166,7 @@ def run_single_task_benchmark(model, task, common_args):
         common_args = update_arg(common_args, "--n_samples", "1")
         common_args = update_arg(common_args, "--batch_size", "1")
     # mercury requires max length generation of 2048
-    if "mercury" or "humanevalfixtests" in task:
+    if "mercury" in task or "humanevalfix" in task:
         common_args = update_arg(common_args, "--max_length_generation", "2048")
 
     command = ["accelerate", "launch", "main.py", "--model", model] + common_args + ["--tasks", task]
@@ -159,19 +175,20 @@ def run_single_task_benchmark(model, task, common_args):
 
     start_time = time.time()
 
-    # Initialize NVML and get GPU 0 handle.
+    # Initialize NVML and get handles for all GPUs.
     try:
         pynvml.nvmlInit()
-        handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # adjust index if needed
+        gpu_count = pynvml.nvmlDeviceGetCount()
+        handles = [pynvml.nvmlDeviceGetHandleByIndex(i) for i in range(gpu_count)]
     except Exception as e:
         print("Error initializing NVML:", e)
-        handle = None
+        handles = []
 
     stop_event = threading.Event()
-    max_vram_usage = [0]
+    max_vram_usages = [0] * len(handles)
 
-    if handle is not None:
-        monitor_thread = threading.Thread(target=monitor_vram, args=(handle, stop_event, 0.5, max_vram_usage))
+    if handles:
+        monitor_thread = threading.Thread(target=monitor_vram_multi_gpu, args=(handles, stop_event, 0.5, max_vram_usages))
         monitor_thread.start()
 
     # Run the harness using Popen so that we can print output in real time.
@@ -195,11 +212,11 @@ def run_single_task_benchmark(model, task, common_args):
         print("Error running benchmark for model", model, "on task", task, ":", e)
 
     stop_event.set()
-    if handle is not None:
+    if handles:
         monitor_thread.join()
 
     elapsed_time = time.time() - start_time
-    vram_usage_mb = max_vram_usage[0] / (1024 * 1024) if max_vram_usage[0] else None
+    vram_usages_mb = [usage / (1024 * 1024) for usage in max_vram_usages]
 
     if "--generation_only" in common_args:
         benchmark_result = {"message": "humanevalexplaindescribe + generation_only = no output. humanevalexplainsynthesize will have output."}
@@ -212,7 +229,7 @@ def run_single_task_benchmark(model, task, common_args):
 
     return {
         "total_elapsed_time_sec": elapsed_time,
-        "max_vram_usage_mb": vram_usage_mb,
+        "max_vram_usage_mb_per_gpu": vram_usages_mb,
         "result": benchmark_result
     }
 
@@ -249,14 +266,9 @@ def main():
     st_models = [
         #"Qwen/Qwen2.5-Coder-0.5B",
         #"Qwen/Qwen2.5-Coder-7B",
-        "01-ai/Yi-Coder-1.5B"
+        "01-ai/Yi-Coder-1.5B",
+        "01-ai/Yi-Coder-9B",
     ]
-
-    # gguf, repo name and file name pairs
-    #gguf_models = {
-        #"bartowski/Qwen2.5-Coder-0.5B-GGUF": "Qwen2.5-Coder-0.5B-Q4_K_M.gguf",
-        #"QuantFactory/Yi-Coder-1.5B-GGUF": "Yi-Coder-1.5B.Q4_K_M.gguf",
-    #}
 
     # List of tasks to run in a single call.
     basic_tasks = [
@@ -350,7 +362,7 @@ def main():
     # Limit the number of problems to solve per task.
     # Useful for quick testing or reducing evaluation time.
     # Set to None to solve all problems.
-    LIMIT = 1
+    LIMIT = 3
 
     # ---------- Execution and Saving Options ----------
     # Allow the execution of generated code.
@@ -432,8 +444,7 @@ def main():
     # -------------------------------
     # Run Benchmark for Each Model and Task
     # -------------------------------
-    for model in st_models: #, file in gguf_models.items():
-        #add_arg("--modelfile", file)
+    for model in st_models:
         print(f"\n=== Benchmarking model: {model} ===")
         model_benchmark = {"model": model, "benchmark_result": {"tasks": {}}}
         results.append(model_benchmark)
@@ -456,7 +467,8 @@ def main():
                 "total_generations": new_limit * N_SAMPLES,
                 "total_elapsed_time_sec": result["total_elapsed_time_sec"],
                 "average_time_per_generation_sec": result["total_elapsed_time_sec"] / (new_limit * N_SAMPLES),
-                "max_vram_usage_mb": result["max_vram_usage_mb"],
+                "max_vram_usage_mb_per_gpu": result["max_vram_usage_mb_per_gpu"],
+                "max_vram_usage_mb_total": sum(result["max_vram_usage_mb_per_gpu"]),
                 "result": task_result
             }
             update_json_file(results, filename)
