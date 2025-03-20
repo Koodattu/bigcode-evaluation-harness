@@ -171,3 +171,4 @@ playground/
 /results
 logs.json
 /rust
+errors.txt

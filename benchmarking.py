@@ -167,7 +167,7 @@ def run_single_task_benchmark(model, task, common_args):
         common_args = update_arg(common_args, "--batch_size", "1")
     # mercury requires max length generation of 2048
     if "mercury" in task or "humanevalfix" in task:
-        common_args = update_arg(common_args, "--max_length_generation", "2048")
+        common_args = update_arg(common_args, "--max_length_generation", "1280")
 
     command = ["accelerate", "launch", "main.py", "--model", model] + common_args + ["--tasks", task]
     print(f"\nRunning command for task '{task}':")
@@ -249,10 +249,11 @@ def get_new_limit(task):
 
 def main():
     # FOR SOME TASKS YOU NEED GO, JAVA, JAVASCRIPT, RUST
-    # JAVASCRIPT = sudo apt install nodejs
-    # RUST = sudo apt install rustc cargo
-    # JAVA = sudo apt install default-jdk
-    # GO = sudo apt install golang
+    # C++ = sudo apt install -y g++ clang libboost-all-dev
+    # JAVASCRIPT = sudo apt install -y nodejs
+    # RUST = sudo apt install -y rustc cargo
+    # JAVA = sudo apt install -y default-jdk
+    # GO = sudo apt install -y golang && GO111MODULE=off && go get github.com/stretchr/testify/assert
 
     os.makedirs("./results/references", exist_ok=True)
     os.makedirs("./results/generations", exist_ok=True)
@@ -267,7 +268,7 @@ def main():
         #"Qwen/Qwen2.5-Coder-0.5B",
         #"Qwen/Qwen2.5-Coder-7B",
         "01-ai/Yi-Coder-1.5B",
-        "01-ai/Yi-Coder-9B",
+        #"01-ai/Yi-Coder-9B",
     ]
 
     # List of tasks to run in a single call.
